@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin ZenAja – Vendor</title>
+<style>
+:root{--g:#0f5c5a;--b:#dde5e1;--t:#17262a;--m:#5f716f;--bg:#f3f1ec}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.5 "Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--t)}
+.w{max-width:1100px;margin:0 auto;padding:20px 16px}
+header{display:flex;justify-content:space-between;align-items:center}
+h1{font:600 22px Georgia,serif;margin:0}
+input,select,textarea,button{font:inherit;padding:8px 10px;border:1px solid #c5d0cb;border-radius:6px;background:#fff}
+button{border-color:var(--g);color:var(--g);cursor:pointer}button.p{background:var(--g);color:#fff}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.stats div{background:#fff;border:1px solid var(--b);border-radius:8px;padding:8px 14px}.stats b{font-size:20px;display:block}
+.tools{display:flex;gap:8px;margin-bottom:10px}.tools input{flex:1}
+.tw{overflow-x:auto;background:#fff;border:1px solid var(--b);border-radius:8px}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--b);white-space:nowrap}
+tbody tr{cursor:pointer}tbody tr:hover{background:#eef4f1}
+.bd{padding:2px 8px;border-radius:99px;background:#e4e9e6;font-size:12px}
+.bd.application,.bd.lead{background:#fde9b8}.bd.approved,.bd.active,.bd.ready_to_go_live{background:#c9ead8}.bd.terminated,.bd.suspended{background:#f6c9c5}.bd.revision_required{background:#d6e4f7}
+#dt{position:fixed;inset:0 0 0 auto;width:min(640px,100%);background:#fff;box-shadow:-6px 0 24px #0003;padding:20px;overflow:auto;display:none}
+#dt h3{margin:22px 0 6px;color:var(--g);border-bottom:1px solid var(--b)}
+.blk{margin-bottom:10px}dl{display:grid;grid-template-columns:170px 1fr;gap:4px 12px;margin:6px 0}dt{color:var(--m)}dd{margin:0;overflow-wrap:anywhere}
+#lg{max-width:340px;margin:80px auto;background:#fff;padding:24px;border-radius:10px;border:1px solid var(--b)}#lg input{width:100%;margin:6px 0}
+.adm{border:1px solid var(--g);border-radius:8px;padding:12px;margin:12px 0}
+.pipe{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}.pp{font-size:11px;padding:2px 8px;border-radius:99px;background:#e4e9e6;color:var(--m)}.pp.on{background:var(--g);color:#fff}
+.ci{display:flex;gap:8px;align-items:center;padding:5px 0;flex-wrap:wrap;border-bottom:1px solid var(--b)}.ci label{flex:1;min-width:200px;cursor:pointer}.ci.rj label{color:#b3261e}
+.ci button{padding:2px 10px;border-color:#b3261e;color:#b3261e}.ci small{flex-basis:100%;color:var(--m)}.adm input,.adm textarea{width:100%;margin:4px 0}.adm input[type=checkbox]{width:auto}
+#pr{display:none}
+@page{margin:14mm}
+@media print{body>*:not(#pr){display:none!important}#pr{display:block}#pr h3{break-after:avoid}#pr .blk{break-inside:avoid}#pr dl{grid-template-columns:210px 1fr}}
+.dlb{display:inline-block;margin-left:6px;padding:2px 10px;border:1px solid var(--g);border-radius:6px;background:var(--g);color:#fff;text-decoration:none;font-size:12px}
+</style></head><body>
+<div id="lg"><h1>Masuk admin</h1><input id="em" type="email" placeholder="Email"><input id="pw" type="password" placeholder="Password"><button class="p" id="go">Masuk</button><p id="le" style="color:#b3261e"></p></div>
+<div class="w" id="app" style="display:none">
+<header><h1>Vendor ZenAja</h1><button id="out">Keluar</button></header>
+<div class="stats" id="st"></div>
+<div class="tools"><input id="q" placeholder="Cari nama, ID, kategori, email…"><select id="sf"><option value="">Semua status</option><option>baru</option><option>ditinjau</option><option>perlu_revisi</option><option>disetujui</option><option>ditolak</option></select></div>
+<div class="tw"><table><thead><tr><th>Vendor ID</th><th>Brand</th><th>Kategori</th><th>Email PIC</th><th>Daftar</th><th>Status</th></tr></thead><tbody id="tb"></tbody></table></div>
+<p id="empty" style="display:none">Belum ada data. Jika Anda yakin sudah ada pendaftar, pastikan email Anda terdaftar di tabel admins.</p>
+</div>
+<div id="dt"></div>
+<div id="pr"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="config.js"></script><script src="schema.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const sb = supabase.createClient(SB_URL, SB_KEY);
+const esc = x => String(x ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ST = { lead: 'Lead', application: 'Application', under_review: 'Under review', revision_required: 'Revision required', approved: 'Approved', onboarding: 'Onboarding', ready_to_go_live: 'Ready to go live', active: 'Active', paused: 'Temporarily paused', suspended: 'Suspended', terminated: 'Terminated' };
+const FLOW = ['lead', 'application', 'under_review', 'revision_required', 'approved', 'onboarding', 'ready_to_go_live', 'active'];
+const POST = ['active', 'paused', 'suspended', 'terminated'];
+// [kunci, label, grup (r=review, o=onboarding, x=final), bagian form vendor yang direvisi bila ditolak]
+const CL = [['legal','Legal verified','r',['B']],['bank','Bank verified','r',['H']],['contract','Contract signed','o',['L']],
+ ['commercial','Commercial terms approved','r',['H','I']],['photos','Photos approved','r',['C','F']],['services','Services approved','r',['D']],
+ ['pricing','Pricing approved','r',['D']],['schedule','Schedule uploaded','o',['E']],['cancel','Cancellation policy confirmed','r',['G']],
+ ['vadmin','Vendor admin created','o',['K']],['t_book','Test booking successful','o',[]],['t_pay','Test payment successful','o',[]],
+ ['t_refund','Test cancellation/refund successful','o',[]],['ready','Ready to go live','x',[]]];
+let me = '';
+$('sf').innerHTML = '<option value="">Semua status</option>' + Object.entries(ST).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+let V = [], cur = null;
+
+async function load() {
+  const { data, error } = await sb.from('vendors').select('*').order('created_at', { ascending: false });
+  if (error) { alert(error.message); return; }
+  V = data; me = (await sb.auth.getSession()).data.session?.user.email || ''; $('lg').style.display = 'none'; $('app').style.display = 'block';
+  $('empty').style.display = V.length ? 'none' : 'block';
+  $('st').innerHTML = `<div><b>${V.length}</b>Total</div>` + Object.keys(ST).map(s => `<div><b>${V.filter(v => v.status == s).length}</b>${ST[s]}</div>`).join('');
+  list();
+}
+function list() {
+  const q = $('q').value.toLowerCase(), f = $('sf').value;
+  $('tb').innerHTML = V.filter(v => (!f || v.status == f) && [v.brand_name, v.vendor_code, v.pic_email, v.category].join(' ').toLowerCase().includes(q))
+    .map(v => `<tr data-id="${v.id}"><td>${v.vendor_code}</td><td>${esc(v.brand_name)}</td><td>${esc(v.category)}</td><td>${esc(v.pic_email)}</td><td>${new Date(v.created_at).toLocaleDateString('id-ID')}</td><td><span class="bd ${v.status}">${ST[v.status] || v.status}</span></td></tr>`).join('');
+}
+function show(f, x, pr) {
+  if (x == null || x === '' || (Array.isArray(x) && !x.length)) return '—';
+  if (f.t == 'sig') return `<img data-path="${x.path}" height="80" alt="Tanda tangan">`;
+  if (f.t == 'file') return pr ? esc(x.name) : `<a href="#" data-path="${x.path}">${esc(x.name)}</a> · <a href="#" class="dlb" data-dl="${x.path}" data-name="${esc(x.name)}">⬇ Unduh</a>`;
+  if (f.t == 'hours') return DAYS.map(d => { const h = x[d] || {}; return `${d}: ${h.x ? 'Tutup' : (h.o || '?') + '–' + (h.c || '?')}`; }).join('<br>');
+  if (f.t == 'check') return x ? 'Ya' : '—';
+  if (Array.isArray(x)) return esc(x.join(', '));
+  return esc(x);
+}
+function detail(id) {
+  cur = V.find(v => v.id == id);
+  let h = `<span style="float:right"><button id="pt">Cetak</button> <button class="p" id="pd">Unduh PDF</button> <button id="x">Tutup</button></span><h1>${esc(cur.brand_name)}</h1><p>${cur.vendor_code} · ${new Date(cur.created_at).toLocaleString('id-ID')}</p>${panel()}`;
+  SCHEMA.forEach(s => {
+    h += `<h3>${s.id}. ${s.title}</h3>`;
+    const d = cur.data[s.id];
+    (s.rep ? d || [] : [d || {}]).forEach((o, i) => h += `<div class="blk">${s.rep ? `<b>${s.item} ${i + 1}</b>` : ''}<dl>${s.f.filter(f => f.t != 'auto').map(f => `<dt>${f.l}</dt><dd>${show(f, o[f.k])}</dd>`).join('')}</dl></div>`);
+  });
+  const sc = $('dt').scrollTop; $('dt').innerHTML = h; $('dt').style.display = 'block'; $('dt').scrollTop = sc;
+  $('dt').querySelectorAll('img[data-path]').forEach(async im => { const r = await sb.storage.from('vendor-docs').createSignedUrl(im.dataset.path, 600); if (r.data) im.src = r.data.signedUrl; });
+}
+const okc = c => { const d = k => c[k]?.done, g = x => CL.filter(i => i[2] == x); return { rev: g('r').every(i => d(i[0])), onb: g('o').every(i => d(i[0])), any: CL.some(i => d(i[0])), onany: g('o').some(i => d(i[0])), ready: d('ready') }; };
+function derive(c, s) {
+  if (!['application', 'under_review', 'approved', 'onboarding', 'ready_to_go_live'].includes(s)) return s;
+  const o = okc(c);
+  if (o.ready && o.rev && o.onb) return 'ready_to_go_live';
+  if (o.rev) return o.onany ? 'onboarding' : 'approved';
+  return o.any ? 'under_review' : 'application';
+}
+const rvLink = () => new URL(`index.html?id=${cur.id}&t=${cur.revision_token}`, location.href).href;
+function panel() {
+  const c = cur.checklist || {}, o = okc(c), wa = (cur.data.A?.wa || '').replace(/\D/g, '').replace(/^0/, '62');
+  const pipe = FLOW.map(s => `<span class="pp ${s == cur.status ? 'on' : ''}">${ST[s]}</span>`).join('') + (POST.includes(cur.status) && cur.status != 'active' ? `<span class="pp on">${ST[cur.status]}</span>` : '');
+  return `<div class="adm"><b>Internal Admin ZenAja — tidak ditampilkan ke vendor</b><div class="pipe">${pipe}</div>
+  ${CL.map(([k, l, g, sec]) => { const x = c[k] || {}, lock = k == 'ready' && !(o.rev && o.onb);
+    return `<div class="ci ${x.rejected ? 'rj' : ''}"><label><input type="checkbox" data-ck="${k}" ${x.done ? 'checked' : ''} ${lock ? 'disabled' : ''}> ${l}</label>${sec.length && !x.done ? `<button data-rj="${k}">Tolak</button>` : ''}<small>${x.done ? `${esc(x.by)} · ${new Date(x.at).toLocaleDateString('id-ID')}` : x.rejected ? `${cur.status == 'revision_required' ? 'Menunggu revisi vendor' : 'Sudah direvisi vendor'}: ${esc(x.note)}` : ''}</small></div>`; }).join('')}
+  ${cur.status == 'revision_required' ? `<p><b>Link revisi untuk vendor</b> (hanya membuka bagian yang ditolak)</p><input readonly value="${rvLink()}" onclick="this.select()"><a target="_blank" href="https://wa.me/${wa}?text=${encodeURIComponent('Halo, data pendaftaran ZenAja Anda perlu direvisi. Mohon perbarui lewat link ini: ' + rvLink())}">Kirim via WhatsApp</a>` : ''}
+  <label>Internal notes</label><textarea id="in" rows="3">${esc(cur.internal_notes)}</textarea>
+  <label>Approved by</label><input id="ab" value="${esc(cur.approved_by)}"><label>Go-live date</label><input id="gd" type="date" value="${cur.go_live_date || ''}">
+  <button class="p" id="sn">Simpan catatan</button>
+  ${cur.status == 'ready_to_go_live' ? '<button class="p" id="act">Aktifkan vendor</button>' : ''}
+  ${POST.includes(cur.status) ? `<p>Ubah status: <select id="ms">${POST.map(s => `<option value="${s}" ${s == cur.status ? 'selected' : ''}>${ST[s]}</option>`).join('')}</select> <button id="ps">Terapkan</button></p>` : ''}</div>`;
+}
+async function save(p) { const { error } = await sb.from('vendors').update(p).eq('id', cur.id); if (error) { alert(error.message); return false; } return true; }
+async function refresh() { const id = cur.id; await load(); detail(id); }
+async function toggle(k) {
+  const c = { ...cur.checklist }, on = !c[k]?.done; c[k] = { done: on, by: me, at: new Date().toISOString() };
+  const o = okc(c); if (!(o.rev && o.onb)) c.ready = { done: false };
+  await save({ checklist: c, status: derive(c, cur.status) }); refresh();
+}
+async function reject(k) {
+  const note = prompt('Apa yang tidak sesuai? Catatan ini akan tampil ke vendor.'); if (!note) return;
+  const it = CL.find(i => i[0] == k), c = { ...cur.checklist }; c[k] = { done: false, rejected: true, note, at: new Date().toISOString() }; c.ready = { done: false };
+  const prev = cur.status == 'revision_required' ? cur.revision : {};
+  const revision = { sections: [...new Set([...(prev.sections || []), ...it[3]])], items: [...(prev.items || []).filter(i => i.key != k), { key: k, label: it[1], note }] };
+  await save({ checklist: c, revision, status: 'revision_required' }); refresh();
+}
+document.addEventListener('click', async e => {
+  const t = e.target, tr = t.closest('tbody tr'), a = t.closest('a[data-path]');
+  if (tr && $('tb').contains(tr)) detail(tr.dataset.id);
+  if (t.id == 'x') $('dt').style.display = 'none';
+  if (t.id == 'pt') printForm();
+  if (t.id == 'pd') pdfForm(t);
+  if (t.dataset.ck) toggle(t.dataset.ck);
+  if (t.dataset.rj) reject(t.dataset.rj);
+  if (t.id == 'sn') { await save({ internal_notes: $('in').value, approved_by: $('ab').value, go_live_date: $('gd').value || null }); refresh(); }
+  if (t.id == 'act') { if (!cur.approved_by || !cur.go_live_date) return alert('Isi Approved by dan Go-live date, lalu simpan dulu.'); await save({ status: 'active' }); refresh(); }
+  if (t.id == 'ps') { await save({ status: $('ms').value }); refresh(); }
+  if (a) { e.preventDefault(); const w = window.open('', '_blank'); const r = await sb.storage.from('vendor-docs').createSignedUrl(a.dataset.path, 300); r.data ? w.location = r.data.signedUrl : (w.close(), alert('Gagal membuka file')); }
+});
+document.addEventListener('click', async e => {
+  const d = e.target.closest('a[data-dl]'); if (!d) return; e.preventDefault();
+  const r = await sb.storage.from('vendor-docs').createSignedUrl(d.dataset.dl, 120, { download: d.dataset.name });
+  if (!r.data) return alert('Gagal mengunduh file');
+  const l = document.createElement('a'); l.href = r.data.signedUrl; document.body.appendChild(l); l.click(); l.remove();
+});
+function formHTML() {
+  let h = `<h1>Formulir Pendaftaran Vendor ZenAja</h1><p><b>${esc(cur.brand_name)}</b> · ${cur.vendor_code}<br>Didaftarkan ${new Date(cur.created_at).toLocaleString('id-ID')} · Status: ${ST[cur.status] || cur.status}</p>`;
+  SCHEMA.forEach(s => {
+    h += `<h3>${s.id}. ${s.title}</h3>`;
+    const d = cur.data[s.id];
+    (s.rep ? d || [] : [d || {}]).forEach((o, i) => h += `<div class="blk">${s.rep ? `<b>${s.item} ${i + 1}</b>` : ''}<dl>${s.f.filter(f => f.t != 'auto').map(f => `<dt>${f.l}</dt><dd>${show(f, o[f.k], 1)}</dd>`).join('')}</dl></div>`);
+  });
+  return h;
+}
+async function loadImgs(root) {
+  await Promise.all([...root.querySelectorAll('img[data-path]')].map(async im => {
+    const r = await sb.storage.from('vendor-docs').createSignedUrl(im.dataset.path, 300); if (!r.data) return;
+    const b = await (await fetch(r.data.signedUrl)).blob();
+    const u = await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(b); });
+    await new Promise(ok => { im.onload = im.onerror = ok; im.src = u; });
+  }));
+}
+async function printForm() {
+  $('pr').innerHTML = formHTML(); await loadImgs($('pr'));
+  const t = document.title; document.title = `${cur.vendor_code} - ${cur.brand_name}`;
+  window.onafterprint = () => { document.title = t; $('pr').innerHTML = ''; };
+  window.print();
+}
+async function pdfForm(btn) {
+  const old = btn.textContent; btn.disabled = true; btn.textContent = 'Membuat PDF…';
+  const el = document.createElement('div');
+  el.style.cssText = 'width:720px;padding:8px;background:#fff;color:#17262a;font:13px/1.5 "Segoe UI",system-ui,sans-serif';
+  el.innerHTML = formHTML(); el.querySelectorAll('dl').forEach(d => d.style.gridTemplateColumns = '200px 1fr');
+  try {
+    await loadImgs(el);
+    await html2pdf().set({ margin: 10, filename: `${cur.vendor_code} - ${cur.brand_name}.pdf`, image: { type: 'jpeg', quality: .95 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['.blk', 'h3'] } }).from(el).save();
+  } catch (e) { alert('Gagal membuat PDF: ' + (e.message || e)); }
+  btn.disabled = false; btn.textContent = old;
+}
+$('q').oninput = list; $('sf').onchange = list;
+$('go').onclick = async () => {
+  const { error } = await sb.auth.signInWithPassword({ email: $('em').value, password: $('pw').value });
+  error ? $('le').textContent = 'Email atau password salah.' : load();
+};
+$('out').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+sb.auth.getSession().then(r => { if (r.data.session) load(); });
+setInterval(() => { if ($('app').style.display == 'block') load(); }, 30000);
+</script></body></html>

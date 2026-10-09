@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Daftar Vendor ZenAja</title>
+<style>
+:root{--g:#0f5c5a;--b:#dde5e1;--t:#17262a;--m:#5f716f;--bg:#f3f1ec}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 "Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--t)}
+.w{max-width:720px;margin:0 auto;padding:24px 16px 80px}
+h1{font:600 26px/1.2 Georgia,serif;margin:8px 0 2px}
+.m,small{color:var(--m)}
+.bar{height:6px;background:var(--b);border-radius:9px;margin:10px 0 18px}
+.bar i{display:block;height:100%;width:0;background:var(--g);border-radius:9px;transition:width .3s}
+.card{background:#fff;border:1px solid var(--b);border-radius:10px;padding:6px 18px 16px;margin-bottom:14px}
+.card>b{display:block;margin-top:14px;color:var(--g)}
+label{display:block;font-weight:600;font-size:13px;margin:14px 0 4px}
+label.ck{display:inline-flex;gap:6px;align-items:center;margin:4px 14px 4px 0;font-weight:400;font-size:14px}
+input,select,textarea{width:100%;padding:10px;border:1px solid #c5d0cb;border-radius:6px;font:inherit;background:#fff}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--g);outline-offset:1px}
+input[type=checkbox]{width:auto}input[readonly]{background:#eef2ef}
+button{font:inherit;padding:10px 18px;border-radius:6px;border:1px solid var(--g);background:#fff;color:var(--g);cursor:pointer}
+button.p{background:var(--g);color:#fff}button:disabled{opacity:.5}
+.nav{display:flex;justify-content:space-between;margin-top:16px}
+.err{color:#b3261e;font-size:14px;min-height:20px;margin-top:10px}
+canvas{width:100%;height:180px;border:2px dashed #8fa8a0;border-radius:8px;touch-action:none;background:#fff;display:block;margin-bottom:6px}
+.hr{display:grid;grid-template-columns:64px 1fr 1fr auto;gap:6px;align-items:center;margin:4px 0}
+.hr label{margin:0}
+@media(max-width:480px){.hr{grid-template-columns:56px 1fr 1fr}.hr label{grid-column:2/4}}
+</style></head><body><div class="w">
+<h1>Daftar sebagai vendor ZenAja</h1>
+<p class="m" id="step"></p><div class="bar"><i id="bar"></i></div>
+<div id="v"></div><div class="err" id="err" role="alert"></div>
+<div class="nav"><button id="pv">Kembali</button><button id="nx" class="p">Lanjut</button></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script><script src="schema.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const sb = supabase.createClient(SB_URL, SB_KEY);
+const Q = new URLSearchParams(location.search), REV = Q.get('id') && Q.get('t'), ID = REV ? Q.get('id') : crypto.randomUUID(), PFX = REV ? Date.now() + '-' : '';
+let CODE = 'ZV-' + ID.replace(/-/g, '').slice(0, 8).toUpperCase(), NOTES = '';
+const S = {}, FL = {}; let st = 0, sigData = '';
+const esc = x => String(x ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const newItem = s => { const o = {}; s.f.forEach(f => { if (f.def !== undefined) o[f.k] = f.def; }); return o; };
+SCHEMA.forEach(s => S[s.id] = s.rep ? [newItem(s)] : newItem(s));
+const get = p => p.split('.').reduce((o, k) => o?.[k], S);
+const set = (p, val) => { const a = p.split('.'), l = a.pop(); let o = S; a.forEach(k => o = o[k] ??= {}); o[l] = val; };
+const opts = f => Array.isArray(f.o) ? f.o : (() => { const [a, b] = f.o.split('.'), r = S[a]; return [...new Set((Array.isArray(r) ? r : [r]).map(x => x[b]).filter(Boolean))]; })();
+
+function fld(s, i, f, o) {
+  if (f.show && o[f.show[0]] !== f.show[1]) return '';
+  const p = `${s.id}.${s.rep ? i + '.' : ''}${f.k}`, v = o[f.k], a = `data-p="${p}"`;
+  const L = `<label>${f.l}${f.req ? ' *' : ''}</label>`;
+  switch (f.t) {
+    case 'auto': return L + `<input readonly value="${esc(f.v())}">`;
+    case 'textarea': return L + `<textarea rows="3" ${a}>${esc(v)}</textarea>`;
+    case 'select': return L + `<select ${a}><option value="">Pilih…</option>${opts(f).map(x => `<option ${v == x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select>`;
+    case 'checks': { const os = opts(f); return L + (os.length ? os.map(x => `<label class="ck"><input type="checkbox" ${a} data-c="1" value="${esc(x)}" ${(v || []).includes(x) ? 'checked' : ''}>${esc(x)}</label>`).join('') : '<small>Isi langkah sebelumnya dulu.</small>'); }
+    case 'check': return `<label class="ck"><input type="checkbox" ${a} data-b="1" ${v ? 'checked' : ''}>${f.l}${f.req ? ' *' : ''}</label><br>`;
+    case 'file': return L + `<input type="file" ${a} data-kb="${f.kb}" accept="${f.acc}">${v ? `<small>Terpilih: ${esc(v.name)}</small>` : ''}`;
+    case 'hours': return L + DAYS.map(d => { const h = (v || {})[d] || {}; return `<div class="hr"><span>${d}</span><input type="time" data-p="${p}.${d}.o" value="${h.o || ''}" aria-label="${d} buka"><input type="time" data-p="${p}.${d}.c" value="${h.c || ''}" aria-label="${d} tutup"><label class="ck"><input type="checkbox" data-b="1" data-p="${p}.${d}.x" ${h.x ? 'checked' : ''}>Tutup</label></div>`; }).join('');
+    case 'sig': return L + '<canvas id="cv"></canvas><button type="button" id="clr">Hapus tanda tangan</button>';
+    default: return L + `<input type="${f.t}" ${a} value="${esc(v)}" ${f.min != null ? `min="${f.min}"` : ''} ${f.max != null ? `max="${f.max}"` : ''}>`;
+  }
+}
+
+function draw() {
+  const s = SCHEMA[st], items = s.rep ? S[s.id] : [S[s.id]];
+  $('step').textContent = `Langkah ${st + 1} dari ${SCHEMA.length}: ${s.title}`;
+  $('bar').style.width = (st + 1) / SCHEMA.length * 100 + '%';
+  let h = NOTES + (s.note ? `<p class="m">${s.note}</p>` : '');
+  items.forEach((o, i) => h += `<div class="card">${s.rep ? `<b>${s.item} ${i + 1}</b>${i ? ` <button data-del="${s.id}.${i}">Hapus</button>` : ''}` : ''}${s.f.map(f => fld(s, i, f, o)).join('')}</div>`);
+  if (s.rep) h += `<button data-add="${s.id}">+ ${s.add}</button>`;
+  $('v').innerHTML = h;
+  $('pv').style.visibility = st ? 'visible' : 'hidden';
+  $('nx').textContent = st == SCHEMA.length - 1 ? 'Kirim pendaftaran' : 'Lanjut';
+  if (s.f.some(f => f.t == 'sig')) initSig();
+}
+
+function handle(e) {
+  const t = e.target, p = t.dataset.p; if (!p) return;
+  if (t.type == 'file') {
+    const f = t.files[0];
+    if (f && f.size > t.dataset.kb * 1024) { alert(`Ukuran file maksimal ${t.dataset.kb} KB.`); t.value = ''; return; }
+    set(p, f ? { name: f.name } : null); FL[p] = f; return;
+  }
+  if (t.dataset.c) { const a = new Set(get(p) || []); t.checked ? a.add(t.value) : a.delete(t.value); set(p, [...a]); return; }
+  set(p, t.dataset.b ? t.checked : t.value);
+  if (e.type == 'change' && t.tagName == 'SELECT') draw();
+}
+$('v').addEventListener('input', handle); $('v').addEventListener('change', handle);
+
+document.addEventListener('click', e => {
+  const t = e.target;
+  if (t.dataset.add) { const s = SCHEMA.find(x => x.id == t.dataset.add); S[s.id].push(newItem(s)); draw(); }
+  if (t.dataset.del) {
+    const [id, i] = t.dataset.del.split('.'); S[id].splice(+i, 1);
+    const N = {}; for (const k in FL) { const m = k.match(/^(\w)\.(\d+)\.(.*)$/); if (m && m[1] == id) { const n = +m[2]; if (n == i) continue; N[n > i ? `${id}.${n - 1}.${m[3]}` : k] = FL[k]; } else N[k] = FL[k]; }
+    Object.keys(FL).forEach(k => delete FL[k]); Object.assign(FL, N); draw();
+  }
+});
+
+function initSig() {
+  const c = $('cv'), x = c.getContext('2d'); let d = 0;
+  c.width = c.offsetWidth * 2; c.height = 360; x.lineWidth = 5; x.lineCap = 'round'; x.strokeStyle = '#111';
+  if (sigData) { const im = new Image(); im.onload = () => x.drawImage(im, 0, 0, c.width, c.height); im.src = sigData; }
+  const xy = e => { const r = c.getBoundingClientRect(); return [(e.clientX - r.left) * c.width / r.width, (e.clientY - r.top) * c.height / r.height]; };
+  c.onpointerdown = e => { d = 1; c.setPointerCapture(e.pointerId); x.beginPath(); const [a, b] = xy(e); x.moveTo(a, b); x.lineTo(a + .1, b); x.stroke(); };
+  c.onpointermove = e => { if (d) { x.lineTo(...xy(e)); x.stroke(); } };
+  c.onpointerup = () => { if (d) { d = 0; sigData = c.toDataURL(); } };
+  $('clr').onclick = () => { x.clearRect(0, 0, c.width, c.height); sigData = ''; };
+}
+
+function validate() {
+  const s = SCHEMA[st], items = s.rep ? S[s.id] : [S[s.id]];
+  for (const o of items) for (const f of s.f) {
+    if (!f.req || (f.show && o[f.show[0]] !== f.show[1])) continue;
+    const v = o[f.k];
+    const bad = f.t == 'sig' ? !sigData : (f.t == 'file' || f.t == 'check') ? !v : Array.isArray(v) ? !v.length : !String(v ?? '').trim() || (f.t == 'email' && !/^\S+@\S+\.\S+$/.test(v));
+    if (bad) { $('err').textContent = `Mohon lengkapi: ${f.l}`; return false; }
+  }
+  $('err').textContent = ''; return true;
+}
+
+async function up(path, blob) { const { error } = await sb.storage.from('vendor-docs').upload(path, blob); if (error) throw error; return path; }
+
+async function submit() {
+  if (!validate()) return;
+  $('nx').disabled = true; $('err').textContent = 'Mengirim, mohon tunggu…';
+  try {
+    for (const [p, f] of Object.entries(FL)) {
+      if (!f || !get(p)) continue;
+      set(p, { name: f.name, path: await up(`${ID}/${PFX}${p}-${f.name.replace(/[^\w.-]/g, '_')}`, f) });
+    }
+    if (sigData) S.L.sig = { path: await up(`${ID}/${PFX}signature.png`, await (await fetch(sigData)).blob()) };
+    const A = S.A, { error } = REV ? await sb.rpc('submit_revision', { p_id: ID, p_token: Q.get('t'), p_data: S }) : await sb.from('vendors').insert({ id: ID, vendor_code: CODE, brand_name: A.brand, category: A.cat == 'Lainnya' ? A.cat_other : A.cat, pic_email: A.email, data: S });
+    if (error) throw error;
+    document.querySelector('.w').innerHTML = `<h1>Pendaftaran terkirim</h1><p>Terima kasih. Tim ZenAja akan meninjau data Anda dan menghubungi PIC lewat WhatsApp atau email.</p><p>Vendor ID Anda: <b>${CODE}</b></p>`;
+  } catch (e) { $('err').textContent = 'Gagal mengirim: ' + (e.message || e) + '. Coba lagi.'; $('nx').disabled = false; }
+}
+
+$('nx').onclick = () => { if (!validate()) return; if (st == SCHEMA.length - 1) return submit(); st++; draw(); scrollTo(0, 0); };
+$('pv').onclick = () => { st--; $('err').textContent = ''; draw(); scrollTo(0, 0); };
+(async () => {
+  if (REV) {
+    const { data } = await sb.rpc('get_revision', { p_id: ID, p_token: Q.get('t') });
+    const secs = data?.revision?.sections || [];
+    if (!data || !secs.length) { document.querySelector('.w').innerHTML = '<h1>Link tidak berlaku</h1><p>Link revisi ini tidak valid, atau data Anda sedang tidak diminta untuk direvisi.</p>'; return; }
+    Object.assign(S, data.data); CODE = data.vendor_code;
+    SCHEMA.splice(0, SCHEMA.length, ...SCHEMA.filter(s => secs.includes(s.id)));
+    NOTES = `<div class="card" style="border-color:#b3261e"><b>Bagian ini perlu Anda perbaiki</b>${(data.revision.items || []).map(x => `<p><b>${esc(x.label)}:</b> ${esc(x.note)}</p>`).join('')}</div>`;
+    document.querySelector('h1').textContent = 'Revisi data vendor';
+  }
+  draw();
+})();
+</script></body></html>
