@@ -49,8 +49,8 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#eef4f1}
 const $ = id => document.getElementById(id);
 const sb = supabase.createClient(SB_URL, SB_KEY);
 const esc = x => String(x ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const ST = { lead: 'Lead', application: 'Application', under_review: 'Under review', revision_required: 'Revision required', approved: 'Approved', onboarding: 'Onboarding', ready_to_go_live: 'Ready to go live', active: 'Active', paused: 'Temporarily paused', suspended: 'Suspended', terminated: 'Terminated' };
-const FLOW = ['lead', 'application', 'under_review', 'revision_required', 'approved', 'onboarding', 'ready_to_go_live', 'active'];
+const ST = { application: 'Application', under_review: 'Under review', revision_required: 'Revision required', approved: 'Approved', onboarding: 'Onboarding', ready_to_go_live: 'Ready to go live', active: 'Active', paused: 'Temporarily paused', suspended: 'Suspended', terminated: 'Terminated' };
+const FLOW = ['application', 'under_review', 'revision_required', 'approved', 'onboarding', 'ready_to_go_live', 'active'];
 const POST = ['active', 'paused', 'suspended', 'terminated'];
 // [kunci, label, grup (r=review, o=onboarding, x=final), bagian form vendor yang direvisi bila ditolak]
 const CL = [['legal','Legal verified','r',['B']],['bank','Bank verified','r',['H']],['contract','Contract signed','o',['L']],
@@ -67,7 +67,7 @@ async function load() {
   if (error) { alert(error.message); return; }
   V = data; me = (await sb.auth.getSession()).data.session?.user.email || ''; $('lg').style.display = 'none'; $('app').style.display = 'block';
   $('empty').style.display = V.length ? 'none' : 'block';
-  $('st').innerHTML = `<div><b>${V.length}</b>Total</div>` + Object.keys(ST).map(s => `<div><b>${V.filter(v => v.status == s).length}</b>${ST[s]}</div>`).join('');
+  $('st').innerHTML = `<div><b>${V.length}</b>Total</div>` + Object.keys(ST).filter(s => !['paused', 'suspended', 'terminated'].includes(s)).map(s => `<div><b>${V.filter(v => v.status == s).length}</b>${ST[s]}</div>`).join('');
   list();
 }
 function list() {
