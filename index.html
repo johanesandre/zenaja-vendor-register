@@ -6,7 +6,12 @@
 :root{--g:#0f5c5a;--b:#dde5e1;--t:#17262a;--m:#5f716f;--bg:#f3f1ec}
 *{box-sizing:border-box}
 body{margin:0;font:15px/1.5 "Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--t)}
-.w{max-width:720px;margin:0 auto;padding:24px 16px 80px}
+.top{max-width:720px;margin:0 auto;padding:12px 16px 0;display:flex;justify-content:flex-end}
+.lang{display:flex;gap:4px}
+.lang button{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;font-size:13px;border-radius:6px}
+#step{font-size:19px;font-weight:600;color:var(--g);margin:10px 0 0}
+.lang button.on{background:var(--g);color:#fff}
+.w{max-width:720px;margin:0 auto;padding:8px 16px 80px}
 h1{font:600 26px/1.2 Georgia,serif;margin:8px 0 2px}
 .m,small{color:var(--m)}
 .bar{height:6px;background:var(--b);border-radius:9px;margin:10px 0 18px}
@@ -26,75 +31,88 @@ canvas{width:100%;height:180px;border:2px dashed #8fa8a0;border-radius:8px;touch
 .hr{display:grid;grid-template-columns:64px 1fr 1fr auto;gap:6px;align-items:center;margin:4px 0}
 .hr label{margin:0}
 @media(max-width:480px){.hr{grid-template-columns:56px 1fr 1fr}.hr label{grid-column:2/4}}
-</style></head><body><div class="w">
-<h1>Daftar sebagai vendor ZenAja</h1>
-<p class="m" id="step"></p><div class="bar"><i id="bar"></i></div>
+</style></head><body>
+<div class="top"><div class="lang" role="group" aria-label="Language">
+  <button type="button" data-lang="id" id="l-id"><svg width="20" height="14" viewBox="0 0 20 14" aria-hidden="true"><rect width="20" height="7" fill="#e70011"/><rect y="7" width="20" height="7" fill="#fff" stroke="#ccc" stroke-width=".5"/></svg><span>ID</span></button><button type="button" data-lang="en" id="l-en"><svg width="22" height="11" viewBox="0 0 60 30" aria-hidden="true"><clipPath id="fs"><path d="M0,0 v30 h60 v-30 z"/></clipPath><clipPath id="ft"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/></clipPath><g clip-path="url(#fs)"><path d="M0,0 v30 h60 v-30 z" fill="#012169"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#ft)" stroke="#C8102E" stroke-width="4"/><path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/><path d="M30,0 v30 M0,15 h60" stroke="#C8102E" stroke-width="6"/></g></svg><span>ENG</span></button>
+</div></div>
+<div class="w">
+<h1 id="h1">Daftar sebagai vendor ZenAja</h1>
+<p id="step"></p><div class="bar"><i id="bar"></i></div>
 <div id="v"></div><div class="err" id="err" role="alert"></div>
 <div class="nav"><button id="pv">Kembali</button><button id="nx" class="p">Lanjut</button></div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="config.js"></script><script src="schema.js"></script>
+<script src="config.js"></script><script src="i18n.js"></script><script src="schema.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const sb = supabase.createClient(SB_URL, SB_KEY);
 const Q = new URLSearchParams(location.search), REV = Q.get('id') && Q.get('t'), ID = REV ? Q.get('id') : crypto.randomUUID(), PFX = REV ? Date.now() + '-' : '';
-let CODE = 'ZV-' + ID.replace(/-/g, '').slice(0, 8).toUpperCase(), NOTES = '';
+let CODE = 'ZV-' + ID.replace(/-/g, '').slice(0, 8).toUpperCase(), REVD = null, MODE = 'form';
+let LANG = 'id'; try { LANG = localStorage.getItem('zv_lang') === 'en' ? 'en' : 'id'; } catch (e) {}
+const t = x => LANG === 'en' && EN[x] !== undefined ? EN[x] : x;
 const S = {}, FL = {}; let st = 0, sigData = '';
 const esc = x => String(x ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const newItem = s => { const o = {}; s.f.forEach(f => { if (f.def !== undefined) o[f.k] = f.def; }); return o; };
 SCHEMA.forEach(s => S[s.id] = s.rep ? [newItem(s)] : newItem(s));
 const get = p => p.split('.').reduce((o, k) => o?.[k], S);
 const set = (p, val) => { const a = p.split('.'), l = a.pop(); let o = S; a.forEach(k => o = o[k] ??= {}); o[l] = val; };
+// field tersembunyi? mendukung nilai tunggal (select) dan array (checkbox)
+const hid = (f, o) => f.show && !(Array.isArray(o[f.show[0]]) ? o[f.show[0]].includes(f.show[1]) : o[f.show[0]] === f.show[1]);
 const opts = f => Array.isArray(f.o) ? f.o : (() => { const [a, b] = f.o.split('.'), r = S[a]; return [...new Set((Array.isArray(r) ? r : [r]).map(x => x[b]).filter(Boolean))]; })();
 
 function fld(s, i, f, o) {
-  if (f.show && o[f.show[0]] !== f.show[1]) return '';
+  if (hid(f, o)) return '';
   const p = `${s.id}.${s.rep ? i + '.' : ''}${f.k}`, v = o[f.k], a = `data-p="${p}"`;
-  const L = `<label>${f.l}${f.req ? ' *' : ''}</label>`;
+  const lb = t(f.l), L = `<label>${esc(lb)}${f.req ? ' *' : ''}</label>`;
+  const tr = Array.isArray(f.o) ? t : (x => x); // hanya opsi statis yang diterjemahkan
   switch (f.t) {
     case 'auto': return L + `<input readonly value="${esc(f.v())}">`;
     case 'textarea': return L + `<textarea rows="3" ${a}>${esc(v)}</textarea>`;
-    case 'select': return L + `<select ${a}><option value="">Pilih…</option>${opts(f).map(x => `<option ${v == x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select>`;
-    case 'checks': { const os = opts(f); return L + (os.length ? os.map(x => `<label class="ck"><input type="checkbox" ${a} data-c="1" value="${esc(x)}" ${(v || []).includes(x) ? 'checked' : ''}>${esc(x)}</label>`).join('') : '<small>Isi langkah sebelumnya dulu.</small>'); }
-    case 'check': return `<label class="ck"><input type="checkbox" ${a} data-b="1" ${v ? 'checked' : ''}>${f.l}${f.req ? ' *' : ''}</label><br>`;
-    case 'file': return L + `<input type="file" ${a} data-kb="${f.kb}" accept="${f.acc}">${v ? `<small>Terpilih: ${esc(v.name)}</small>` : ''}`;
-    case 'hours': return L + DAYS.map(d => { const h = (v || {})[d] || {}; return `<div class="hr"><span>${d}</span><input type="time" data-p="${p}.${d}.o" value="${h.o || ''}" aria-label="${d} buka"><input type="time" data-p="${p}.${d}.c" value="${h.c || ''}" aria-label="${d} tutup"><label class="ck"><input type="checkbox" data-b="1" data-p="${p}.${d}.x" ${h.x ? 'checked' : ''}>Tutup</label></div>`; }).join('');
-    case 'sig': return L + '<canvas id="cv"></canvas><button type="button" id="clr">Hapus tanda tangan</button>';
+    case 'select': return L + `<select ${a}><option value="">${t('Pilih…')}</option>${opts(f).map(x => `<option value="${esc(x)}" ${v == x ? 'selected' : ''}>${esc(tr(x))}</option>`).join('')}</select>`;
+    case 'checks': { const os = opts(f); return L + (os.length ? os.map(x => `<label class="ck"><input type="checkbox" ${a} data-c="1" value="${esc(x)}" ${(v || []).includes(x) ? 'checked' : ''}>${esc(tr(x))}</label>`).join('') : `<small>${t('Isi langkah sebelumnya dulu.')}</small>`); }
+    case 'check': return `<label class="ck"><input type="checkbox" ${a} data-b="1" ${v ? 'checked' : ''}>${esc(lb)}${f.req ? ' *' : ''}</label><br>`;
+    case 'file': return L + `<input type="file" ${a} data-kb="${f.kb}" accept="${f.acc}">${v ? `<small>${t('Terpilih: ')}${esc(v.name)}</small>` : ''}`;
+    case 'hours': return L + DAYS.map(d => { const h = (v || {})[d] || {}; return `<div class="hr"><span>${t(d)}</span><input type="time" data-p="${p}.${d}.o" value="${h.o || ''}" aria-label="${t(d)} ${t('buka')}"><input type="time" data-p="${p}.${d}.c" value="${h.c || ''}" aria-label="${t(d)} ${t('tutup')}"><label class="ck"><input type="checkbox" data-b="1" data-p="${p}.${d}.x" ${h.x ? 'checked' : ''}>${t('Tutup')}</label></div>`; }).join('');
+    case 'sig': return L + `<canvas id="cv"></canvas><button type="button" id="clr">${t('Hapus tanda tangan')}</button>`;
     default: return L + `<input type="${f.t}" ${a} value="${esc(v)}" ${f.min != null ? `min="${f.min}"` : ''} ${f.max != null ? `max="${f.max}"` : ''}>`;
   }
 }
 
+const revNotes = () => !REVD ? '' : `<div class="card" style="border-color:#b3261e"><b>${t('Bagian ini perlu Anda perbaiki')}</b>${(REVD.revision.items || []).map(x => `<p><b>${esc(x.label)}:</b> ${esc(x.note)}</p>`).join('')}</div>`;
+
 function draw() {
   const s = SCHEMA[st], items = s.rep ? S[s.id] : [S[s.id]];
-  $('step').textContent = `Langkah ${st + 1} dari ${SCHEMA.length}: ${s.title}`;
+  $('step').textContent = LANG === 'en' ? `Step ${st + 1} of ${SCHEMA.length}: ${t(s.title)}` : `Langkah ${st + 1} dari ${SCHEMA.length}: ${s.title}`;
   $('bar').style.width = (st + 1) / SCHEMA.length * 100 + '%';
-  let h = NOTES + (s.note ? `<p class="m">${s.note}</p>` : '');
-  items.forEach((o, i) => h += `<div class="card">${s.rep ? `<b>${s.item} ${i + 1}</b>${i ? ` <button data-del="${s.id}.${i}">Hapus</button>` : ''}` : ''}${s.f.map(f => fld(s, i, f, o)).join('')}</div>`);
-  if (s.rep) h += `<button data-add="${s.id}">+ ${s.add}</button>`;
+  let h = revNotes() + (s.note ? (s.f.length && !s.boxed ? `<p class="m">${esc(t(s.note))}</p>` : `<div class="card"><p>${esc(t(s.note))}</p></div>`) : '');
+  if (s.f.length) items.forEach((o, i) => h += `<div class="card">${s.rep ? `<b>${t(s.item)} ${i + 1}</b>${i ? ` <button data-del="${s.id}.${i}">${t('Hapus')}</button>` : ''}` : ''}${s.f.map(f => fld(s, i, f, o)).join('')}</div>`);
+  if (s.rep) h += `<button data-add="${s.id}">+ ${t(s.add)}</button>`;
   $('v').innerHTML = h;
   $('pv').style.visibility = st ? 'visible' : 'hidden';
-  $('nx').textContent = st == SCHEMA.length - 1 ? 'Kirim pendaftaran' : 'Lanjut';
+  $('nx').textContent = st == SCHEMA.length - 1 ? t('Kirim pendaftaran') : t('Lanjut');
+  $('pv').textContent = t('Kembali');
   if (s.f.some(f => f.t == 'sig')) initSig();
 }
 
 function handle(e) {
-  const t = e.target, p = t.dataset.p; if (!p) return;
-  if (t.type == 'file') {
-    const f = t.files[0];
-    if (f && f.size > t.dataset.kb * 1024) { alert(`Ukuran file maksimal ${t.dataset.kb} KB.`); t.value = ''; return; }
+  const el = e.target, p = el.dataset.p; if (!p) return;
+  if (el.type == 'file') {
+    const f = el.files[0];
+    if (f && f.size > el.dataset.kb * 1024) { alert(LANG === 'en' ? `Maximum file size is ${el.dataset.kb} KB.` : `Ukuran file maksimal ${el.dataset.kb} KB.`); el.value = ''; return; }
     set(p, f ? { name: f.name } : null); FL[p] = f; return;
   }
-  if (t.dataset.c) { const a = new Set(get(p) || []); t.checked ? a.add(t.value) : a.delete(t.value); set(p, [...a]); return; }
-  set(p, t.dataset.b ? t.checked : t.value);
-  if (e.type == 'change' && t.tagName == 'SELECT') draw();
+  if (el.dataset.c) { const a = new Set(get(p) || []); el.checked ? a.add(el.value) : a.delete(el.value); set(p, [...a]); if (el.value == 'Other' && e.type == 'change') draw(); return; }
+  set(p, el.dataset.b ? el.checked : el.value);
+  if (e.type == 'change' && el.tagName == 'SELECT') draw();
 }
 $('v').addEventListener('input', handle); $('v').addEventListener('change', handle);
 
 document.addEventListener('click', e => {
-  const t = e.target;
-  if (t.dataset.add) { const s = SCHEMA.find(x => x.id == t.dataset.add); S[s.id].push(newItem(s)); draw(); }
-  if (t.dataset.del) {
-    const [id, i] = t.dataset.del.split('.'); S[id].splice(+i, 1);
+  const el = e.target;
+  const lg = el.closest && el.closest('[data-lang]'); if (lg) return setLang(lg.dataset.lang);
+  if (el.dataset.add) { const s = SCHEMA.find(x => x.id == el.dataset.add); S[s.id].push(newItem(s)); draw(); }
+  if (el.dataset.del) {
+    const [id, i] = el.dataset.del.split('.'); S[id].splice(+i, 1);
     const N = {}; for (const k in FL) { const m = k.match(/^(\w)\.(\d+)\.(.*)$/); if (m && m[1] == id) { const n = +m[2]; if (n == i) continue; N[n > i ? `${id}.${n - 1}.${m[3]}` : k] = FL[k]; } else N[k] = FL[k]; }
     Object.keys(FL).forEach(k => delete FL[k]); Object.assign(FL, N); draw();
   }
@@ -113,20 +131,31 @@ function initSig() {
 
 function validate() {
   const s = SCHEMA[st], items = s.rep ? S[s.id] : [S[s.id]];
-  for (const o of items) for (const f of s.f) {
-    if (!f.req || (f.show && o[f.show[0]] !== f.show[1])) continue;
+  if (s.f.length) for (const o of items) for (const f of s.f) {
+    if (!f.req || hid(f, o)) continue;
     const v = o[f.k];
     const bad = f.t == 'sig' ? !sigData : (f.t == 'file' || f.t == 'check') ? !v : Array.isArray(v) ? !v.length : !String(v ?? '').trim() || (f.t == 'email' && !/^\S+@\S+\.\S+$/.test(v));
-    if (bad) { $('err').textContent = `Mohon lengkapi: ${f.l}`; return false; }
+    if (bad) { $('err').textContent = t('Mohon lengkapi: ') + t(f.l); return false; }
+  }
+  // Jika ada >1 outlet, setiap outlet wajib punya minimal satu akun akses
+  if (s.cover) {
+    const all = opts({ o: s.cover.src }), used = new Set(items.map(o => o[s.cover.k]));
+    const miss = all.filter(x => !used.has(x));
+    if (all.length > 1 && miss.length) { $('err').textContent = `${t(s.cover.msg)}: ${miss.join(', ')}. ${t('Tambahkan akun lagi.')}`; return false; }
   }
   $('err').textContent = ''; return true;
 }
 
 async function up(path, blob) { const { error } = await sb.storage.from('vendor-docs').upload(path, blob); if (error) throw error; return path; }
 
+function renderStatic() {
+  if (MODE == 'done') document.querySelector('.w').innerHTML = `<h1>${t('Pendaftaran terkirim')}</h1><p>${t('Terima kasih. Tim ZenAja akan meninjau data Anda dan menghubungi PIC lewat WhatsApp atau email.')}</p><p>${t('Vendor ID Anda: ')}<b>${CODE}</b></p>`;
+  if (MODE == 'bad') document.querySelector('.w').innerHTML = `<h1>${t('Link tidak berlaku')}</h1><p>${t('Link revisi ini tidak valid, atau data Anda sedang tidak diminta untuk direvisi.')}</p>`;
+}
+
 async function submit() {
   if (!validate()) return;
-  $('nx').disabled = true; $('err').textContent = 'Mengirim, mohon tunggu…';
+  $('nx').disabled = true; $('err').textContent = t('Mengirim, mohon tunggu…');
   try {
     for (const [p, f] of Object.entries(FL)) {
       if (!f || !get(p)) continue;
@@ -135,21 +164,36 @@ async function submit() {
     if (sigData) S.L.sig = { path: await up(`${ID}/${PFX}signature.png`, await (await fetch(sigData)).blob()) };
     const A = S.A, { error } = REV ? await sb.rpc('submit_revision', { p_id: ID, p_token: Q.get('t'), p_data: S }) : await sb.from('vendors').insert({ id: ID, vendor_code: CODE, brand_name: A.brand, category: A.cat == 'Lainnya' ? A.cat_other : A.cat, pic_email: A.email, data: S });
     if (error) throw error;
-    document.querySelector('.w').innerHTML = `<h1>Pendaftaran terkirim</h1><p>Terima kasih. Tim ZenAja akan meninjau data Anda dan menghubungi PIC lewat WhatsApp atau email.</p><p>Vendor ID Anda: <b>${CODE}</b></p>`;
-  } catch (e) { $('err').textContent = 'Gagal mengirim: ' + (e.message || e) + '. Coba lagi.'; $('nx').disabled = false; }
+    MODE = 'done'; renderStatic();
+  } catch (e) { $('err').textContent = t('Gagal mengirim: ') + (e.message || e) + t('. Coba lagi.'); $('nx').disabled = false; }
+}
+
+// ---- Bahasa ----
+function applyStatic() {
+  document.documentElement.lang = LANG;
+  document.title = t('Daftar Vendor ZenAja');
+  $('l-id').classList.toggle('on', LANG == 'id'); $('l-en').classList.toggle('on', LANG == 'en');
+  $('l-id').setAttribute('aria-pressed', LANG == 'id'); $('l-en').setAttribute('aria-pressed', LANG == 'en');
+  if (MODE == 'form') $('h1').textContent = t(REVD ? 'Revisi data vendor' : 'Daftar sebagai vendor ZenAja');
+}
+function setLang(l) {
+  LANG = l == 'en' ? 'en' : 'id';
+  try { localStorage.setItem('zv_lang', LANG); } catch (e) {}
+  applyStatic();
+  if (MODE == 'form') { $('err').textContent = ''; draw(); } else renderStatic();
 }
 
 $('nx').onclick = () => { if (!validate()) return; if (st == SCHEMA.length - 1) return submit(); st++; draw(); scrollTo(0, 0); };
 $('pv').onclick = () => { st--; $('err').textContent = ''; draw(); scrollTo(0, 0); };
 (async () => {
+  applyStatic();
   if (REV) {
     const { data } = await sb.rpc('get_revision', { p_id: ID, p_token: Q.get('t') });
     const secs = data?.revision?.sections || [];
-    if (!data || !secs.length) { document.querySelector('.w').innerHTML = '<h1>Link tidak berlaku</h1><p>Link revisi ini tidak valid, atau data Anda sedang tidak diminta untuk direvisi.</p>'; return; }
-    Object.assign(S, data.data); CODE = data.vendor_code;
+    if (!data || !secs.length) { MODE = 'bad'; renderStatic(); return; }
+    Object.assign(S, data.data); CODE = data.vendor_code; REVD = data;
     SCHEMA.splice(0, SCHEMA.length, ...SCHEMA.filter(s => secs.includes(s.id)));
-    NOTES = `<div class="card" style="border-color:#b3261e"><b>Bagian ini perlu Anda perbaiki</b>${(data.revision.items || []).map(x => `<p><b>${esc(x.label)}:</b> ${esc(x.note)}</p>`).join('')}</div>`;
-    document.querySelector('h1').textContent = 'Revisi data vendor';
+    applyStatic();
   }
   draw();
 })();

@@ -1,0 +1,112 @@
+// Kamus terjemahan Indonesia -> Inggris. Kunci = teks Indonesia persis seperti di schema.js / index.html.
+// Teks yang tidak ada di sini tampil apa adanya (Indonesia). Nilai yang tersimpan ke database tetap Indonesia.
+const EN = {
+  // --- UI umum ---
+  'Daftar sebagai vendor ZenAja': 'Register as a ZenAja vendor',
+  'Daftar Vendor ZenAja': 'ZenAja Vendor Registration',
+  'Kembali': 'Back', 'Lanjut': 'Next', 'Kirim pendaftaran': 'Submit registration',
+  'Pilih…': 'Select…',
+  'Isi langkah sebelumnya dulu.': 'Fill in the previous step first.',
+  'Terpilih: ': 'Selected: ',
+  'Tutup': 'Closed', 'buka': 'open', 'tutup': 'close',
+  'Hapus': 'Delete', 'Hapus tanda tangan': 'Clear signature',
+  'Mohon lengkapi: ': 'Please complete: ',
+  'Mengirim, mohon tunggu…': 'Submitting, please wait…',
+  'Gagal mengirim: ': 'Failed to submit: ', '. Coba lagi.': '. Please try again.',
+  'Pendaftaran terkirim': 'Registration submitted',
+  'Terima kasih. Tim ZenAja akan meninjau data Anda dan menghubungi PIC lewat WhatsApp atau email.': 'Thank you. The ZenAja team will review your data and contact the PIC via WhatsApp or email.',
+  'Vendor ID Anda: ': 'Your Vendor ID: ',
+  'Link tidak berlaku': 'Link is not valid',
+  'Link revisi ini tidak valid, atau data Anda sedang tidak diminta untuk direvisi.': 'This revision link is invalid, or your data is not currently requested for revision.',
+  'Revisi data vendor': 'Vendor data revision',
+  'Bagian ini perlu Anda perbaiki': 'This section needs your correction',
+  'Tambahkan akun lagi.': 'Please add another account.',
+  'Outlet belum memiliki akun akses': 'Outlet has no access account yet',
+  // --- Hari ---
+  'Senin': 'Monday', 'Selasa': 'Tuesday', 'Rabu': 'Wednesday', 'Kamis': 'Thursday', 'Jumat': 'Friday', 'Sabtu': 'Saturday', 'Minggu': 'Sunday',
+  // --- Opsi ---
+  'Perorangan': 'Individual', 'Lainnya': 'Other', 'Fisioterapi': 'Physiotherapy',
+  'Parkir': 'Parking', 'Dua mingguan': 'Every two weeks', 'Bulanan': 'Monthly',
+  'Promo pengguna baru': 'New user promo',
+  // --- Langkah A ---
+  'Informasi bisnis': 'Business information',
+  'Tanggal pendaftaran': 'Registration date', 'Nama brand / usaha': 'Brand / business name',
+  'Nama legal perusahaan / pemilik': 'Legal company / owner name', 'Bentuk usaha': 'Business type',
+  'Bentuk usaha lainnya': 'Other business type', 'Kategori bisnis': 'Business category',
+  'Kategori lainnya': 'Other category', 'Deskripsi usaha': 'Business description',
+  'Tahun berdiri': 'Year established', 'Nama PIC': 'PIC name', 'Jabatan PIC': 'PIC position',
+  // --- B ---
+  'Legal & verifikasi': 'Legal & verification',
+  'NIB (PDF/gambar, maks 500 KB)': 'NIB (PDF/image, max 500 KB)',
+  'NPWP (PDF/gambar, maks 500 KB)': 'NPWP (PDF/image, max 500 KB)',
+  'KTP pihak berwenang (gambar, maks 500 KB)': 'ID card (KTP) of authorized person (image, max 500 KB)',
+  'Akta perusahaan (jika badan usaha, maks 1 MB)': 'Company deed (if a legal entity, max 1 MB)',
+  'Izin operasional / profesi sesuai layanan (maks 1 MB)': 'Operational / professional license for the service (max 1 MB)',
+  'Tanggal kedaluwarsa izin': 'License expiry date',
+  'Nama dokumen tambahan': 'Additional document name',
+  'Dokumen tambahan (maks 1 MB)': 'Additional document (max 1 MB)',
+  'Tanggal kedaluwarsa dokumen tambahan': 'Additional document expiry date',
+  // --- C ---
+  'Outlet / cabang': 'Outlet / branch', 'Tambah outlet lain': 'Add another outlet',
+  'Nama outlet': 'Outlet name', 'Alamat lengkap': 'Full address', 'Tautan Google Maps': 'Google Maps link',
+  'Kontak outlet': 'Outlet contact', 'Jam operasional per hari': 'Operating hours per day',
+  'Fasilitas': 'Facilities', 'Instruksi lokasi': 'Location instructions',
+  'Logo (gambar, maks 500 KB)': 'Logo (image, max 500 KB)',
+  'Galeri foto & video (link Google Drive)': 'Photo & video gallery (Google Drive link)',
+  // --- D ---
+  'Layanan / kelas': 'Services / classes', 'Layanan': 'Service', 'Tambah layanan': 'Add service',
+  'Nama layanan': 'Service name', 'Kategori layanan': 'Service category', 'Outlet penyedia': 'Providing outlet',
+  'Deskripsi layanan': 'Service description', 'Durasi (menit)': 'Duration (minutes)',
+  'Kapasitas maksimal': 'Maximum capacity', 'Minimal peserta': 'Minimum participants',
+  'Persiapan pelanggan': 'Customer preparation', 'Fasilitas termasuk': 'Included facilities',
+  'Fasilitas lainnya (sebutkan)': 'Other facilities (specify)',
+  'Batas usia / level / pembatasan': 'Age / level / restrictions',
+  'Harga retail (Rp)': 'Retail price (Rp)', 'Harga jual ZenAja (Rp)': 'ZenAja selling price (Rp)',
+  'Ketentuan pemesanan khusus': 'Special booking terms',
+  // --- E ---
+  'Jadwal & ketersediaan': 'Schedule & availability', 'Jadwal': 'Schedule', 'Tambah jadwal': 'Add schedule',
+  'Hari berulang': 'Recurring days', 'Waktu mulai': 'Start time', 'Waktu selesai': 'End time',
+  'Instruktur / therapist': 'Instructor / therapist', 'Kapasitas per layanan': 'Capacity per service',
+  'Blackout date / hari libur / penutupan sementara': 'Blackout dates / holidays / temporary closures',
+  'Pemesanan paling awal (hari sebelum jadwal)': 'Earliest booking (days before schedule)',
+  'Pemesanan paling akhir (jam sebelum jadwal)': 'Latest booking (hours before schedule)',
+  // --- F ---
+  'Pelaksana / instruktur / therapist': 'Provider / instructor / therapist',
+  'Pelaksana': 'Provider', 'Tambah pelaksana': 'Add provider',
+  'Lewati jika tidak relevan.': 'Skip if not relevant.',
+  'Nama': 'Name', 'Posisi': 'Position', 'Foto (maks 500 KB)': 'Photo (max 500 KB)',
+  'Biodata singkat': 'Short bio', 'Spesialisasi': 'Specialization', 'Sertifikasi': 'Certification',
+  'Pengalaman': 'Experience', 'Layanan yang ditangani': 'Services handled',
+  // --- G ---
+  'Saya setuju': 'I agree',
+  'Kebijakan booking & pembatalan': 'Booking & cancellation policy',
+  'Pembatalan dari customer yang mengakibatkan refund merupakan tanggung jawab vendor. Vendor melakukan pembayaran ke customer terlebih dahulu, kemudian melampirkan bukti transfer ke customer. Pihak ZenAja melakukan refund ke vendor sesuai dengan perjanjian pencairan dana.':
+    'Customer cancellations that result in a refund are the vendor\'s responsibility. The vendor pays the customer first, then attaches the proof of transfer to the customer. ZenAja then refunds the vendor in accordance with the payout agreement.',
+  // --- H ---
+  'Keuangan & bank': 'Finance & bank', 'Nama bank': 'Bank name', 'Nomor rekening': 'Account number',
+  'Nama pemilik rekening': 'Account holder name',
+  'Bukti kepemilikan rekening (maks 1 MB)': 'Proof of account ownership (max 1 MB)',
+  'Biaya lainnya': 'Other fees', 'Jadwal pencairan dana': 'Payout schedule',
+  // --- I ---
+  'Promosi & marketing': 'Promotion & marketing', 'Persetujuan jenis promo': 'Approved promo types',
+  'Diskon maksimum yang disetujui (%)': 'Maximum approved discount (%)',
+  'Saya mengizinkan ZenAja memakai logo, foto, dan materi pemasaran kami': 'I allow ZenAja to use our logo, photos, and marketing materials',
+  // --- J ---
+  'Iklan': 'Advertising', 'Minat pemasangan iklan': 'Interested ad placements',
+  'Kontak untuk iklan': 'Advertising contact', 'Budget iklan (Rp/Bulan, opsional)': 'Ad budget (Rp/Month, optional)',
+  // --- K ---
+  'Akun admin vendor': 'Vendor admin account', 'Akun': 'Account', 'Tambah akun pengguna lain': 'Add another user account',
+  'Akun pertama adalah admin utama. Jika outlet lebih dari satu, setiap outlet wajib memiliki akses; tambahkan akun lagi bila perlu.':
+    'The first account is the main admin. If there is more than one outlet, every outlet must have access; add more accounts if needed.',
+  'Nomor HP': 'Phone number', 'Hak akses': 'Access rights', 'Outlet yang dapat diakses': 'Accessible outlet',
+  // --- L ---
+  'Persetujuan & tanda tangan': 'Consent & signature',
+  'Saya menyatakan seluruh data yang diisi benar': 'I declare that all the data provided is correct',
+  'Saya menyetujui Perjanjian Vendor': 'I agree to the Vendor Agreement',
+  'Saya menyetujui ketentuan pencairan dana': 'I agree to the payout terms',
+  'Saya menyetujui ketentuan user agreement': 'I agree to the user agreement terms',
+  'Saya menyetujui Privacy Policy dan penggunaan data': 'I agree to the Privacy Policy and data usage',
+  'Saya bersedia menerima informasi pemasaran ZenAja (opsional)': 'I agree to receive ZenAja marketing information (optional)',
+  'Nama penandatangan': 'Signer name', 'Jabatan': 'Position', 'Tanggal': 'Date',
+  'Tanda tangan digital (coret di area bawah)': 'Digital signature (draw in the area below)',
+};
