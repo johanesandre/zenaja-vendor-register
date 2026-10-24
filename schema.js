@@ -67,7 +67,7 @@ const SCHEMA = [
     F('service', 'Layanan', 'select', { req: 1, o: 'D.name' }),
     F('days', 'Hari berulang', 'checks', { req: 1, o: DAYS }),
     F('start', 'Waktu mulai', 'time', { req: 1 }), F('end', 'Waktu selesai', 'time', { req: 1 }),
-    F('staff', 'Instruktur / therapist'),
+    F('staff', 'instruktur/terapis/pelaksana'),
     F('cap', 'Kapasitas per layanan', 'number', { min: 0 }),
     F('blackout', 'Blackout date / hari libur / penutupan sementara', 'textarea'),
     F('early', 'Pemesanan paling awal (hari sebelum jadwal)', 'number', { min: 0 }),
